@@ -3,5 +3,8 @@ scikit-learn
 joblib
 opencv-python
 pydicom
+opencv-python-headless
 numpy
 pandas
+matplotlib
+
