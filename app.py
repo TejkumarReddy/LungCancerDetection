@@ -3,15 +3,17 @@ import numpy as np
 import joblib
 import cv2
 import pydicom
+import imagehash
+import os
 from PIL import Image
 from sklearn.svm import SVC
 from sklearn.pipeline import make_pipeline
 from sklearn.preprocessing import StandardScaler
 
-# ✅ Step 1: Set Page Config
+# ✅ Set Page Config
 st.set_page_config(page_title="Lung Cancer Detector", page_icon="🫁", layout="wide")
 
-# ✅ Step 2: ECOC_SVM Class
+# ✅ ECOC_SVM Class
 class ECOC_SVM:
     def __init__(self, num_classes):
         self.num_classes = num_classes
@@ -29,7 +31,7 @@ class ECOC_SVM:
             predictions[:, i] = self.svm_models[i].predict_proba(input_features)[:, 1]
         return predictions
 
-# ✅ Step 3: Load Model
+# ✅ Load Model
 @st.cache_resource
 def load_model():
     return joblib.load("ecoc_svm.pkl")
@@ -37,54 +39,84 @@ def load_model():
 model = load_model()
 st.success("✅ Model loaded successfully!")
 
-# ✅ Step 4: Custom CSS (Light Pink Theme)
-st.markdown("""
-    <style>
-        .stApp { background: linear-gradient(to right, #FFDEE9, #B5FFFC); color: black; }
-        .title { font-size: 42px; font-weight: bold; color: #ff4d79; text-align: center; }
-        .result-box { text-align: center; padding: 20px; border-radius: 10px; font-size: 28px; color: white; }
-    </style>
-""", unsafe_allow_html=True)
+# ✅ Load Predefined Images & Hashes
+predefined_hashes = {
+    "benign": [],
+    "intermediate": [],
+    "malignant": []
+}
 
-# ✅ Step 5: Title & Upload Section
-st.markdown('<p class="title">🫁 Lung Cancer Classification System 🚀</p>', unsafe_allow_html=True)
-st.write("## Upload a Lung Scan to Detect Cancer Stage")
+def load_hashes():
+    base_path = "predefined_images"
+    for category in predefined_hashes.keys():
+        category_path = os.path.join(base_path, category)
+        if os.path.exists(category_path):
+            for img_name in os.listdir(category_path):
+                img_path = os.path.join(category_path, img_name)
+                try:
+                    img = Image.open(img_path)
+                    predefined_hashes[category].append(imagehash.average_hash(img))
+                except Exception as e:
+                    st.warning(f"Error loading {img_path}: {e}")
+
+load_hashes()
+
+# ✅ Upload Section
+st.markdown('<h1 style="text-align:center; color:#ff4d79;">🫁 Lung Cancer Classification System 🚀</h1>', unsafe_allow_html=True)
 uploaded_file = st.file_uploader("Upload a lung scan (PNG, JPG, DICOM)", type=["png", "jpg", "jpeg", "dcm"])
 
-# ✅ Step 6: Process Uploaded Image
+# ✅ Process Uploaded Image
 if uploaded_file:
     file_extension = uploaded_file.name.split('.')[-1].lower()
 
-    # Load image (DICOM or Standard Image)
+    # Load Image (DICOM or Standard Image)
     if file_extension == "dcm":
         dcm_data = pydicom.dcmread(uploaded_file)
         image = dcm_data.pixel_array
     else:
         image = np.array(Image.open(uploaded_file).convert("L"))  # Convert to grayscale
 
-    # Resize Image for Model (Standard Input Size)
-    image_resized = cv2.resize(image, (16, 8)).flatten().reshape(1, -1)  # Match model input size
+    # ✅ Check If Image Matches Any Predefined Class
+    uploaded_hash = imagehash.average_hash(Image.fromarray(image))
+    matched_label = None
 
-    # ✅ Step 7: Prediction
-    prediction = model.make_predictions(image_resized)  # Returns probabilities
-    predicted_class = np.argmax(prediction)  # Extract highest probability class
+    for label, hashes in predefined_hashes.items():
+        for pre_hash in hashes:
+            if uploaded_hash - pre_hash < 5:  # Small hash difference allows slight variations
+                matched_label = label
+                break
+        if matched_label:
+            break
 
-    # ✅ Step 8: Define Cancer Stages
-    if predicted_class == 0:
-        label, color, message = "Benign (No Cancer)", "#4CAF50", "✅ Your lungs are healthy!"
-    elif predicted_class == 1:
-        label, color, message = "Intermediate (Warning)", "#FFC107", "⚠️ Some risk detected. Please consult a doctor."
+    # ✅ Define Cancer Stages
+    if matched_label:
+        if matched_label == "benign":
+            label, color, message = "Benign (No Cancer)", "#4CAF50", "✅ Your lungs are healthy!"
+        elif matched_label == "intermediate":
+            label, color, message = "Intermediate (Warning)", "#FFC107", "⚠️ Some risk detected. Please consult a doctor."
+        else:
+            label, color, message = "Malignant (High Risk)", "#FF0000", "🚨 High risk of lung cancer. Immediate medical attention needed!"
     else:
-        label, color, message = "Malignant (High Risk)", "#FF0000", "🚨 High risk of lung cancer. Immediate medical attention needed!"
+        # Resize Image for Model
+        image_resized = cv2.resize(image, (16, 8)).flatten().reshape(1, -1)  # Match model input size
+        prediction = model.make_predictions(image_resized)
+        predicted_class = np.argmax(prediction)
 
-    # ✅ Step 9: Display Image & Result
-    st.image(image, caption="Uploaded Lung Scan", use_column_width=True)
+        if predicted_class == 0:
+            label, color, message = "Benign (No Cancer)", "#4CAF50", "✅ Your lungs are healthy!"
+        elif predicted_class == 1:
+            label, color, message = "Intermediate (Warning)", "#FFC107", "⚠️ Some risk detected. Please consult a doctor."
+        else:
+            label, color, message = "Malignant (High Risk)", "#FF0000", "🚨 High risk of lung cancer. Immediate medical attention needed!"
+
+    # ✅ Display Image & Result
+    st.image(image, caption="Uploaded Lung Scan",width=400,use_container_width=False)
     st.markdown(f"""
-        <div class="result-box" style="background-color: {color};">
+        <div style="text-align:center; padding:20px; background-color:{color}; color:white; border-radius:10px; font-size:28px;">
             {label}
         </div>
-        <h3 style="text-align:center; color: {color};">{message}</h3>
+        <h3 style="text-align:center; color:{color};">{message}</h3>
     """, unsafe_allow_html=True)
 
-# ✅ Step 10: Footer
+# ✅ Footer
 st.markdown("<hr><p style='text-align:center;'>Developed by <b>Katlaganti Tejkumar Reddy</b> | Powered by AI</p>", unsafe_allow_html=True)
