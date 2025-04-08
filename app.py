@@ -31,6 +31,9 @@ class ECOC_SVM:
             predictions[:, i] = self.svm_models[i].predict_proba(input_features)[:, 1]
         return predictions
 
+# ✅ Ensure folders exist
+os.makedirs("predefined_images/results", exist_ok=True)
+
 # ✅ Load Model
 @st.cache_resource
 def load_model():
@@ -64,23 +67,22 @@ load_hashes()
 # ✅ UI Title
 st.markdown('<h1 style="text-align:center; color:#ff4d79;">🫁 Lung Cancer Classification System </h1>', unsafe_allow_html=True)
 
-# ✅ Top Right Hover Button With Tooltip & Image Grid
-with st.container():
-    with st.expander("⋮ See results of the model", expanded=False):
-        image_folder = "predefined_images/results"
-        if os.path.exists(image_folder):
-            images = [img for img in os.listdir(image_folder) if img.lower().endswith(('.png', '.jpg', '.jpeg'))][:9]
-            if images:
-                for i in range(0, len(images), 3):
-                    cols = st.columns(3)
-                    for j in range(3):
-                        if i + j < len(images):
-                            img_path = os.path.join(image_folder, images[i + j])
-                            cols[j].image(img_path, use_column_width=True)
-            else:
-                st.warning("No images found in the 'results' folder.")
+# ✅ See Results Panel
+with st.expander("⋮ See results of the model", expanded=False):
+    image_folder = "predefined_images/results"
+    if os.path.exists(image_folder):
+        images = [img for img in os.listdir(image_folder) if img.lower().endswith(('.png', '.jpg', '.jpeg'))][:9]
+        if images:
+            for i in range(0, len(images), 3):
+                cols = st.columns(3)
+                for j in range(3):
+                    if i + j < len(images):
+                        img_path = os.path.join(image_folder, images[i + j])
+                        cols[j].image(img_path, use_container_width=True)
         else:
-            st.error("The 'results' folder is missing!")
+            st.warning("No images found in the 'results' folder.")
+    else:
+        st.error("The 'predefined_images/results' folder is missing!")
 
 # ✅ Upload Section
 uploaded_file = st.file_uploader("Upload a lung scan (PNG, JPG, DICOM)", type=["png", "jpg", "jpeg", "dcm"])
