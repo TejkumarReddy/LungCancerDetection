@@ -62,7 +62,7 @@ def load_hashes():
 load_hashes()
 
 # ✅ Upload Section
-st.markdown('<h1 style="text-align:center; color:#ff4d79;">🫁 Lung Cancer Classification System 🚀</h1>', unsafe_allow_html=True)
+st.markdown('<h1 style="text-align:center; color:#ff4d79;">🫁 Lung Cancer Classification System </h1>', unsafe_allow_html=True)
 uploaded_file = st.file_uploader("Upload a lung scan (PNG, JPG, DICOM)", type=["png", "jpg", "jpeg", "dcm"])
 
 # ✅ Process Uploaded Image
