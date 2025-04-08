@@ -67,7 +67,7 @@ st.markdown('<h1 style="text-align:center; color:#ff4d79;">🫁 Lung Cancer Clas
 # ✅ Top Right Hover Button With Tooltip & Image Grid
 with st.container():
     with st.expander("⋮ See results of the model", expanded=False):
-        image_folder = "results"
+        image_folder = "predefined_images/results"
         if os.path.exists(image_folder):
             images = [img for img in os.listdir(image_folder) if img.lower().endswith(('.png', '.jpg', '.jpeg'))][:9]
             if images:
