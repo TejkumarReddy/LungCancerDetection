@@ -39,7 +39,7 @@ def load_model():
 model = load_model()
 st.success("✅ Model loaded successfully!")
 
-# ✅ Load Predefined Images & Hashes
+# ✅ Load Predefined Hashes
 predefined_hashes = {
     "benign": [],
     "intermediate": [],
@@ -61,8 +61,28 @@ def load_hashes():
 
 load_hashes()
 
-# ✅ Upload Section
+# ✅ UI Title
 st.markdown('<h1 style="text-align:center; color:#ff4d79;">🫁 Lung Cancer Classification System </h1>', unsafe_allow_html=True)
+
+# ✅ Top Right Hover Button With Tooltip & Image Grid
+with st.container():
+    with st.expander("⋮ See results of the model", expanded=False):
+        image_folder = "results"
+        if os.path.exists(image_folder):
+            images = [img for img in os.listdir(image_folder) if img.lower().endswith(('.png', '.jpg', '.jpeg'))][:9]
+            if images:
+                for i in range(0, len(images), 3):
+                    cols = st.columns(3)
+                    for j in range(3):
+                        if i + j < len(images):
+                            img_path = os.path.join(image_folder, images[i + j])
+                            cols[j].image(img_path, use_column_width=True)
+            else:
+                st.warning("No images found in the 'results' folder.")
+        else:
+            st.error("The 'results' folder is missing!")
+
+# ✅ Upload Section
 uploaded_file = st.file_uploader("Upload a lung scan (PNG, JPG, DICOM)", type=["png", "jpg", "jpeg", "dcm"])
 
 # ✅ Process Uploaded Image
@@ -74,21 +94,21 @@ if uploaded_file:
         dcm_data = pydicom.dcmread(uploaded_file)
         image = dcm_data.pixel_array
     else:
-        image = np.array(Image.open(uploaded_file).convert("L"))  # Convert to grayscale
+        image = np.array(Image.open(uploaded_file).convert("L"))  # Grayscale
 
-    # ✅ Check If Image Matches Any Predefined Class
+    # ✅ Check If Image Matches Predefined Class
     uploaded_hash = imagehash.average_hash(Image.fromarray(image))
     matched_label = None
 
     for label, hashes in predefined_hashes.items():
         for pre_hash in hashes:
-            if uploaded_hash - pre_hash < 5:  # Small hash difference allows slight variations
+            if uploaded_hash - pre_hash < 5:
                 matched_label = label
                 break
         if matched_label:
             break
 
-    # ✅ Define Cancer Stages
+    # ✅ Define Cancer Stage Result
     if matched_label:
         if matched_label == "benign":
             label, color, message = "Benign (No Cancer)", "#4CAF50", "✅ Your lungs are healthy!"
@@ -97,8 +117,7 @@ if uploaded_file:
         else:
             label, color, message = "Malignant (High Risk)", "#FF0000", "🚨 High risk of lung cancer. Immediate medical attention needed!"
     else:
-        # Resize Image for Model
-        image_resized = cv2.resize(image, (16, 8)).flatten().reshape(1, -1)  # Match model input size
+        image_resized = cv2.resize(image, (16, 8)).flatten().reshape(1, -1)
         prediction = model.make_predictions(image_resized)
         predicted_class = np.argmax(prediction)
 
@@ -109,8 +128,8 @@ if uploaded_file:
         else:
             label, color, message = "Malignant (High Risk)", "#FF0000", "🚨 High risk of lung cancer. Immediate medical attention needed!"
 
-    # ✅ Display Image & Result
-    st.image(image, caption="Uploaded Lung Scan",width=400,use_container_width=False)
+    # ✅ Display Output
+    st.image(image, caption="Uploaded Lung Scan", width=400, use_container_width=False)
     st.markdown(f"""
         <div style="text-align:center; padding:20px; background-color:{color}; color:white; border-radius:10px; font-size:28px;">
             {label}
