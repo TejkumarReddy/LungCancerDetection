@@ -40,7 +40,7 @@ def load_model():
     return joblib.load("ecoc_svm.pkl")
 
 model = load_model()
-st.success("✅ Model loaded successfully!")
+#st.success("✅ Model loaded successfully!")
 
 # ✅ Load Predefined Hashes
 predefined_hashes = {
