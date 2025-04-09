@@ -140,4 +140,4 @@ if uploaded_file:
     """, unsafe_allow_html=True)
 
 # ✅ Footer
-st.markdown("<hr><p style='text-align:center;'>Developed by <b>Katlaganti Tejkumar Reddy</b> | Powered by AI</p>", unsafe_allow_html=True)
+st.markdown("<hr><p style='text-align:center;'>Developed by <b>VAGTV</b> | Powered by AI</p>", unsafe_allow_html=True)
